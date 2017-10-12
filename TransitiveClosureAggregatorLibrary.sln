@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26730.15
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransitiveClosureAggregatorLibrary", "TransitiveClosureAggregatorLibrary\TransitiveClosureAggregatorLibrary.csproj", "{097EF341-926D-4DD2-A434-08E9980D6089}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApp", "TestApp\TestApp.csproj", "{909D9AC3-81CD-4752-A089-67BA3788ADB4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{097EF341-926D-4DD2-A434-08E9980D6089}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{097EF341-926D-4DD2-A434-08E9980D6089}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{097EF341-926D-4DD2-A434-08E9980D6089}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{097EF341-926D-4DD2-A434-08E9980D6089}.Release|Any CPU.Build.0 = Release|Any CPU
+		{909D9AC3-81CD-4752-A089-67BA3788ADB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{909D9AC3-81CD-4752-A089-67BA3788ADB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{909D9AC3-81CD-4752-A089-67BA3788ADB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{909D9AC3-81CD-4752-A089-67BA3788ADB4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {972B0D1C-902E-4655-82B5-358E2DD2FFB4}
+	EndGlobalSection
+EndGlobal
