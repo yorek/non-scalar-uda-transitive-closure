@@ -1,3 +1,6 @@
+USE TransitiveClosure
+GO
+
 DROP TABLE IF EXISTS dbo.[Groups];
 CREATE TABLE dbo.[Groups] (groupId INT, id INT);
 GO
@@ -17,7 +20,7 @@ SELECT
 FROM
 	dbo.T1 ss
 ORDER BY
-	ss.id1
+	ss.id1, ss.id2
 ;
 
 DECLARE @id1 INT, @id2 INT;
@@ -36,7 +39,7 @@ BEGIN
 	SELECT @groupId1 = groupId FROM dbo.Groups WHERE id = @id1;
 	SELECT @groupId2 = groupId FROM dbo.Groups WHERE id = @id2;
 
-	-- id1 or id2 has never been inserted before in any group
+	-- Case 0: id1 or id2 has never been inserted before in any group
 	IF(@groupId1 IS NULL AND @groupId2 IS NULL) BEGIN		
 		SET @groupId = NEXT VALUE FOR [GroupsSequence];
 
@@ -44,17 +47,17 @@ BEGIN
 		IF (@id1 != @id2) INSERT INTO dbo.Groups VALUES (@groupId, @id2)
 	END
 	
-	-- since id1 is already in one group and id2 not, put both in the same group
+	-- Case 1: since id1 is already in one group and id2 not, put both in the same group
 	IF(@groupId1 IS NOT NULL AND @groupId2 IS NULL) BEGIN
 		INSERT INTO dbo.Groups VALUES (@groupId1, @id2)
 	END
 
-	-- since id2 is already in one group and id1 not, put both in the same group
+	-- Case 2: since id2 is already in one group and id1 not, put both in the same group
 	IF(@groupId1 IS NULL AND @groupId2 IS NOT NULL) BEGIN
 		INSERT INTO dbo.Groups VALUES (@groupId2, @id1)
 	END
 
-	-- id1 is in one group and id1 is in another one. This could not be, so put both in the same group
+	-- Case 3: id1 is in one group and id2 is in another one. This could not be, so put both in the same group
 	IF(@groupId1 IS NOT NULL AND @groupId2 IS NOT NULL AND @groupId1 != @groupId2) BEGIN
 		UPDATE dbo.Groups SET groupId = @groupId1 WHERE groupId = @groupId2
 	END
@@ -67,5 +70,10 @@ CLOSE c;
 DEALLOCATE c;
 GO
 
-SELECT * FROM dbo.[Groups]
+SELECT groupId, COUNT(*) FROM dbo.[Groups] GROUP BY groupId ORDER BY groupId
+GO
+
+--SELECT * FROM dbo.[Groups] WHERE groupId = 1801
+
+SELECT * FROM dbo.[Groups] WHERE groupId <= 3
 GO
