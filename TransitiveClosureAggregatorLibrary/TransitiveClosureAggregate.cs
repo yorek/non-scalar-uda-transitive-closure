@@ -81,7 +81,7 @@ namespace TransitiveClosure
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            throw new NotImplementedException();
+            return (IEnumerator)GetEnumerator();
         }
     }
 
@@ -158,7 +158,7 @@ namespace TransitiveClosure
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            throw new NotImplementedException();
+            return (IEnumerator)GetEnumerator();
         }
     }
   
