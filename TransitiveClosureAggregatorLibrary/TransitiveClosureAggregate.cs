@@ -11,8 +11,24 @@ namespace TransitiveClosure
 {
     public class Pair
     {
-        public int X;
-        public int Y;
+        private int _x;
+        private int _y;
+
+        public int X => _x;
+        public int Y => _y;
+
+        public Pair(int x, int y)
+        {
+            if (x <= y)
+            {
+                _x = x;
+                _y = y;
+            } else
+            {
+                _x = y;
+                _y = x;
+            }
+        }
     }
 
     public class Group: IEnumerable<int>
@@ -89,6 +105,7 @@ namespace TransitiveClosure
                 if (g.ContainsElement(p.X) || (g.ContainsElement(p.Y)))
                 {
                     result.Add(g);
+                    if (result.Count >= 2) break;
                 }
             }
 
@@ -158,7 +175,7 @@ namespace TransitiveClosure
 
         public void Accumulate(int inputValue1, int inputValue2)
         {
-            Pair p = new Pair() { X = inputValue1, Y = inputValue2 };
+            Pair p = new Pair(inputValue1, inputValue2);
 
             _groupSet.AddPair(p);                       
         }
