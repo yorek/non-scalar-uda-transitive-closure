@@ -71,28 +71,24 @@ namespace TransitiveClosure
 
     public class GroupSet: IEnumerable<Group>
     {
-        private int _groupCounter = 0;
-
-        private Dictionary<int, Group> _groupSet = new Dictionary<int, Group>();
+        private List<Group> _groupSet = new List<Group>();
 
         public int Count => _groupSet.Count;
 
         public void Add(Group group)
         {
-            _groupSet.Add(_groupCounter, group);
-            _groupCounter += 1;
+            _groupSet.Add(group);
         }
 
-        public List<int> FindInGroups(Pair p)
+        public List<Group> FindInGroups(Pair p)
         {
-            var result = new List<int>();
+            var result = new List<Group>();
 
-            foreach (int k in _groupSet.Keys)
+            foreach (Group g in _groupSet)
             {
-                Group g = _groupSet[k];
                 if (g.ContainsElement(p.X) || (g.ContainsElement(p.Y)))
                 {
-                    result.Add(k);
+                    result.Add(g);
                 }
             }
 
@@ -111,36 +107,33 @@ namespace TransitiveClosure
                 ng.AddUnique(p.X);
                 ng.AddUnique(p.Y);
 
-                _groupSet.Add(_groupCounter, ng);
-                _groupCounter += 1;
-                //Console.WriteLine("New group created. Count: {0}", _groups.Count);
+                _groupSet.Add(ng);
             }
 
             // one item match, add the related item to the same group
             if (foundInGroups.Count == 1)
             {
-                var groupId = foundInGroups[0];
-                _groupSet[groupId].AddUnique(p);
+                var g = foundInGroups[0];
+                g.AddUnique(p);
             }
 
             // if there is a match for both items but in two different groups
             // merge them into just one group and delete the other
             if (foundInGroups.Count >= 2)
             {
-                var group1Id = foundInGroups[0];
+                var g1 = foundInGroups[0];
                 for (int i = 1; i < foundInGroups.Count; i++)
                 {
-                    var group2Id = foundInGroups[i];
-                    _groupSet[group1Id].MergeWith(_groupSet[group2Id]);
-                    _groupSet.Remove(group2Id);
-                    //Console.WriteLine("Group merged. Count: {0}", _groups.Count);
+                    var g2 = foundInGroups[i];
+                    g1.MergeWith(g2);
+                    _groupSet.Remove(g2);
                 }
             }
         }
 
         public IEnumerator<Group> GetEnumerator()
         {
-            foreach(var g in _groupSet.Values)
+            foreach(var g in _groupSet)
             {
                 yield return g;
             }
