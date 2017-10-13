@@ -5,37 +5,28 @@ using System.Data.SqlTypes;
 using System.Text;
 using Microsoft.SqlServer.Server;
 using System.Collections.Generic;
+using System.Collections;
 
 namespace TransitiveClosure
 {
-    public class Groups: List<Group>
+    public class Pair
     {
-        private Group _values = new Group();
-
-        public Groups FindInGroups(Pair p)
-        {
-            var result = new Groups();
-
-            foreach (var g in this)
-            {
-                if (g.ContainsKey(p.X) || (g.ContainsKey(p.Y)))
-                {
-                    result.Add(g);
-                }
-            }
-
-            return result;
-        }
-
-        public new void Add(Group g)
-        {                       
-            base.Add(g);
-        }
+        public int X;
+        public int Y;
     }
 
-    public class Group: Dictionary<int, bool>
+    public class Group: IEnumerable<int>
     {
-        public KeyCollection Elements => this.Keys;
+        private Dictionary<int, bool> _group = new Dictionary<int, bool>();
+
+        public Dictionary<int, bool>.KeyCollection Elements => _group.Keys;
+
+        public int Count => _group.Keys.Count;
+
+        public bool ContainsElement(int element)
+        {
+            return _group.ContainsKey(element);
+        }
 
         public void AddUnique(Pair pair)
         {
@@ -43,46 +34,75 @@ namespace TransitiveClosure
             this.AddUnique(pair.Y);
         }
 
+        public void Add(int element)
+        {
+            _group.Add(element, true);
+        }
+
         public void AddUnique(int element)
         {
-            if (!this.ContainsKey(element))
+            if (!_group.ContainsKey(element))
             {
-                this.Add(element, true);
+                _group.Add(element, true);
             }
         }
 
         public void MergeWith(Group source)
         {
-            foreach (var e in source)
+            foreach (var e in source.Elements)
             {
-                this.AddUnique(e.Key);
+                this.AddUnique(e);
             }
         }
-    }
 
-    public class Pair
-    {
-        public int X;
-        public int Y;       
-    }
-
-    [Serializable]
-    [SqlUserDefinedAggregateAttribute(Format.UserDefined, MaxByteSize = -1)]
-    public class Aggregate : IBinarySerialize
-    {
-        private Groups _groups;
-
-        public void Init()
+        public IEnumerator<int> GetEnumerator()
         {
-            _groups = new Groups();
+            foreach(var e in _group.Keys)
+            {
+                yield return e;
+            }
         }
 
-        public void Accumulate(int inputValue1, int inputValue2)
+        IEnumerator IEnumerable.GetEnumerator()
         {
-            Pair p = new Pair() { X = inputValue1, Y = inputValue2 };
+            throw new NotImplementedException();
+        }
+    }
 
+    public class GroupSet: IEnumerable<Group>
+    {
+        private int _groupCounter = 0;
+
+        private Dictionary<int, Group> _groupSet = new Dictionary<int, Group>();
+
+        public int Count => _groupSet.Count;
+
+        public void Add(Group group)
+        {
+            _groupSet.Add(_groupCounter, group);
+            _groupCounter += 1;
+        }
+
+        public List<int> FindInGroups(Pair p)
+        {
+            var result = new List<int>();
+
+            foreach (int k in _groupSet.Keys)
+            {
+                Group g = _groupSet[k];
+                if (g.ContainsElement(p.X) || (g.ContainsElement(p.Y)))
+                {
+                    result.Add(k);
+                }
+            }
+
+            return result;
+        }
+
+        public void AddPair(Pair p)
+        {
             //Find if the inputValue is already in a group
-            var foundInGroups = _groups.FindInGroups(p);
+            var foundInGroups = FindInGroups(p);
 
             // no item matches: create a new group and add both the inputValues to it
             if (foundInGroups.Count == 0)
@@ -91,44 +111,77 @@ namespace TransitiveClosure
                 ng.AddUnique(p.X);
                 ng.AddUnique(p.Y);
 
-                _groups.Add(ng);
+                _groupSet.Add(_groupCounter, ng);
+                _groupCounter += 1;
                 //Console.WriteLine("New group created. Count: {0}", _groups.Count);
             }
 
             // one item match, add the related item to the same group
             if (foundInGroups.Count == 1)
             {
-                var g = foundInGroups[0];
-                g.AddUnique(p);                
+                var groupId = foundInGroups[0];
+                _groupSet[groupId].AddUnique(p);
             }
 
             // if there is a match for both items but in two different groups
             // merge them into just one group and delete the other
             if (foundInGroups.Count >= 2)
             {
-                var g1 = foundInGroups[0];
+                var group1Id = foundInGroups[0];
                 for (int i = 1; i < foundInGroups.Count; i++)
                 {
-                    var g2 = foundInGroups[i];
-                    g1.MergeWith(g2);
-                    _groups.Remove(g2);
+                    var group2Id = foundInGroups[i];
+                    _groupSet[group1Id].MergeWith(_groupSet[group2Id]);
+                    _groupSet.Remove(group2Id);
                     //Console.WriteLine("Group merged. Count: {0}", _groups.Count);
                 }
-            }                
+            }
+        }
+
+        public IEnumerator<Group> GetEnumerator()
+        {
+            foreach(var g in _groupSet.Values)
+            {
+                yield return g;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+    }
+  
+    [Serializable]
+    [SqlUserDefinedAggregateAttribute(Format.UserDefined, MaxByteSize = -1)]
+    public class Aggregate : IBinarySerialize
+    {
+        private GroupSet _groupSet;
+
+        public void Init()
+        {
+            _groupSet = new GroupSet();
+        }
+
+        public void Accumulate(int inputValue1, int inputValue2)
+        {
+            Pair p = new Pair() { X = inputValue1, Y = inputValue2 };
+
+            _groupSet.AddPair(p);                       
         }
 
         public void Merge(Aggregate value)
         {
-            foreach (var g in value._groups)
+            foreach (var g in value._groupSet)
             {
                 int? pe = null;
                 foreach (var ce in g)
                 {
                     if (pe.HasValue)
                     {
-                        this.Accumulate(pe.Value, ce.Key);
+                        this.Accumulate(pe.Value, ce);
                     }
-                    pe = ce.Key;
+                    pe = ce;
                 }
             }
         }     
@@ -143,12 +196,12 @@ namespace TransitiveClosure
             int c = 0;
             StringBuilder sb = new StringBuilder();
             sb.Append("{");
-            foreach (var g in this._groups)
+            foreach (var g in this._groupSet)
             {
                 sb.Append("\"" + c + "\":[");
 
-                var ea = new int[g.Keys.Count];
-                g.Keys.CopyTo(ea, 0);
+                var ea = new int[g.Elements.Count];
+                g.Elements.CopyTo(ea, 0);
 
                 sb.Append(string.Join(",", ea));
                 
@@ -164,7 +217,7 @@ namespace TransitiveClosure
         public void Read(BinaryReader r)
         {
             if (r == null) throw new ArgumentNullException("r");
-            _groups = new Groups();
+            _groupSet = new GroupSet();
 
             // Group Count
             int g = r.ReadInt32();
@@ -180,11 +233,11 @@ namespace TransitiveClosure
                 // Read values and put them in the list
                 for (int i = 0; i < s; i++)
                 {
-                    l.Add(r.ReadInt32(), true);
+                    l.Add(r.ReadInt32());
                 }
 
                 // Add list to dictionary
-                _groups.Add(l);
+                _groupSet.Add(l);
             }
         }
 
@@ -193,9 +246,9 @@ namespace TransitiveClosure
             if (w == null) throw new ArgumentNullException("w");
 
             // Group count
-            w.Write(_groups.Count);
+            w.Write(_groupSet.Count);
 
-            foreach (var g in _groups)
+            foreach (var g in _groupSet)
             {
                 // Values Count
                 w.Write(g.Count);
@@ -203,7 +256,7 @@ namespace TransitiveClosure
                 // Values
                 foreach (var e in g)
                 {
-                    w.Write(e.Key);
+                    w.Write(e);
                 }
             }
         }
