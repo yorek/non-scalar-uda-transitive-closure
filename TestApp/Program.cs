@@ -82,13 +82,13 @@ namespace TestApp
             var rnd = new Random();
             foreach (var n in Enumerable.Range(0, 100000))
             {
-                a4.Accumulate(rnd.Next(10000), rnd.Next(10000));
-                //if (n % 1000 == 0) Console.WriteLine("Accumulated {0} values...", n);
+                a4.Accumulate(rnd.Next(100000), rnd.Next(100000));
+                if (n % 1000 == 0) Console.WriteLine("Accumulated {0} values in {1} groups...", n, a4.Groups);
             }
             a4.Terminate();
             sw.Stop();
-            Console.WriteLine("High cardinality accumulation result:");
-            Console.WriteLine(a4);
+            //Console.WriteLine("High cardinality accumulation result:");
+            //Console.WriteLine(a4);
             Console.WriteLine();
             Console.WriteLine("Time taken: {0} ms", sw.ElapsedMilliseconds);
             Console.ReadLine();

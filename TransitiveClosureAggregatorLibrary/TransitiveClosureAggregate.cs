@@ -168,6 +168,8 @@ namespace TransitiveClosure
     {
         private GroupSet _groupSet;
 
+        public int Groups => _groupSet.Count;
+
         public void Init()
         {
             _groupSet = new GroupSet();
