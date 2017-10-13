@@ -8,75 +8,109 @@ using System.Collections.Generic;
 
 namespace TransitiveClosure
 {
+    public class Groups: List<Group>
+    {
+        private Group _values = new Group();
+
+        public Groups FindInGroups(Pair p)
+        {
+            var result = new Groups();
+
+            foreach (var g in this)
+            {
+                if (g.ContainsKey(p.X) || (g.ContainsKey(p.Y)))
+                {
+                    result.Add(g);
+                }
+            }
+
+            return result;
+        }
+
+        public new void Add(Group g)
+        {                       
+            base.Add(g);
+        }
+    }
+
+    public class Group: Dictionary<int, bool>
+    {
+        public KeyCollection Elements => this.Keys;
+
+        public void AddUnique(Pair pair)
+        {
+            this.AddUnique(pair.X);
+            this.AddUnique(pair.Y);
+        }
+
+        public void AddUnique(int element)
+        {
+            if (!this.ContainsKey(element))
+            {
+                this.Add(element, true);
+            }
+        }
+
+        public void MergeWith(Group source)
+        {
+            foreach (var e in source)
+            {
+                this.AddUnique(e.Key);
+            }
+        }
+    }
+
     public class Pair
     {
         public int X;
-        public int Y;
+        public int Y;       
     }
 
     [Serializable]
     [SqlUserDefinedAggregateAttribute(Format.UserDefined, MaxByteSize = -1)]
     public class Aggregate : IBinarySerialize
     {
-        private Dictionary<int, Dictionary<int, bool>> _groups;
-        private int _groupCounter;
-        private List<Pair> _notInGroup;
+        private Groups _groups;
 
         public void Init()
         {
-            _notInGroup = new List<Pair>();
-
-            _groups = new Dictionary<int, Dictionary<int, bool>>();
-
-            _groupCounter = 0;
+            _groups = new Groups();
         }
 
         public void Accumulate(int inputValue1, int inputValue2)
         {
             Pair p = new Pair() { X = inputValue1, Y = inputValue2 };
 
-            List<int> found = new List<int>();
-        
-            List<Pair> toMoveInList = new List<Pair>();
-
             //Find if the inputValue is already in a group
-            foreach (var g in _groups)
-            {                
-                if (g.Value.ContainsKey(p.X) || (g.Value.ContainsKey(p.Y)))
-                {
-                    found.Add(g.Key);
-                }
-            }
+            var foundInGroups = _groups.FindInGroups(p);
 
             // no item matches: create a new group and add both the inputValues to it
-            if (found.Count == 0)
+            if (foundInGroups.Count == 0)
             {
-                _groupCounter += 1;
-                var ng = new Dictionary<int, bool>();
-                ng.AddUnique(p.X, true);
-                ng.AddUnique(p.Y, true);
+                var ng = new Group();
+                ng.AddUnique(p.X);
+                ng.AddUnique(p.Y);
 
-                _groups.Add(_groupCounter, ng);
+                _groups.Add(ng);
                 //Console.WriteLine("New group created. Count: {0}", _groups.Count);
             }
 
             // one item match, add the related item to the same group
-            if (found.Count == 1)
+            if (foundInGroups.Count == 1)
             {
-                var g = found[0];
-                _groups[g].AddUnique(p.X, true);
-                _groups[g].AddUnique(p.Y, true);
+                var g = foundInGroups[0];
+                g.AddUnique(p);                
             }
 
             // if there is a match for both items but in two different groups
             // merge them into just one group and delete the other
-            if (found.Count >= 2)
+            if (foundInGroups.Count >= 2)
             {
-                var g1 = found[0];
-                for (int i = 1; i < found.Count; i++)
+                var g1 = foundInGroups[0];
+                for (int i = 1; i < foundInGroups.Count; i++)
                 {
-                    var g2 = found[i];
-                    _groups[g1].UnionWith(_groups[g2]);
+                    var g2 = foundInGroups[i];
+                    g1.MergeWith(g2);
                     _groups.Remove(g2);
                     //Console.WriteLine("Group merged. Count: {0}", _groups.Count);
                 }
@@ -88,7 +122,7 @@ namespace TransitiveClosure
             foreach (var g in value._groups)
             {
                 int? pe = null;
-                foreach (var ce in g.Value)
+                foreach (var ce in g)
                 {
                     if (pe.HasValue)
                     {
@@ -106,20 +140,21 @@ namespace TransitiveClosure
 
         public override string ToString()
         {
+            int c = 0;
             StringBuilder sb = new StringBuilder();
             sb.Append("{");
             foreach (var g in this._groups)
             {
-                sb.Append("\"" + g.Key + "\":[");
+                sb.Append("\"" + c + "\":[");
 
-                if (g.Value != null)
-                {
-                    var ea = new int[g.Value.Keys.Count];
-                    g.Value.Keys.CopyTo(ea, 0);
+                var ea = new int[g.Keys.Count];
+                g.Keys.CopyTo(ea, 0);
 
-                    sb.Append(string.Join(",", ea));
-                }
+                sb.Append(string.Join(",", ea));
+                
                 sb.Append("],");
+
+                c += 1;
             }
             if (sb.Length > 1) sb.Remove(sb.Length - 1, 1);
             sb.Append("}");
@@ -129,7 +164,7 @@ namespace TransitiveClosure
         public void Read(BinaryReader r)
         {
             if (r == null) throw new ArgumentNullException("r");
-            _groups = new Dictionary<int, Dictionary<int, bool>>();
+            _groups = new Groups();
 
             // Group Count
             int g = r.ReadInt32();
@@ -137,10 +172,7 @@ namespace TransitiveClosure
             // For Each Group
             for (int j = 0; j < g; j++)
             {
-                var l = new Dictionary<int, bool>();
-
-                // Group Key 
-                int k = r.ReadInt32();
+                var l = new Group();               
 
                 // List Size (or Values Count)
                 int s = r.ReadInt32();
@@ -152,7 +184,7 @@ namespace TransitiveClosure
                 }
 
                 // Add list to dictionary
-                _groups.Add(k, l);
+                _groups.Add(l);
             }
         }
 
@@ -165,14 +197,11 @@ namespace TransitiveClosure
 
             foreach (var g in _groups)
             {
-                // Group Key
-                w.Write(g.Key);
-
                 // Values Count
-                w.Write(g.Value.Count);
+                w.Write(g.Count);
 
                 // Values
-                foreach (var e in g.Value)
+                foreach (var e in g)
                 {
                     w.Write(e.Key);
                 }

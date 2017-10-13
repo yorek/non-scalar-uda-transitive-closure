@@ -43,7 +43,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ListExtensions.cs" />
     <Compile Include="TransitiveClosureAggregate.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
