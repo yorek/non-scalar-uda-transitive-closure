@@ -1,4 +1,4 @@
-USE TransitiveClosure
+USE [TransitiveClosure]
 GO
 
 DROP TABLE IF EXISTS dbo.[Groups];
@@ -18,7 +18,7 @@ SELECT
 	ss.id1,
 	ss.id2
 FROM
-	dbo.T1 ss
+	dbo.TestDataSmall ss
 ORDER BY
 	ss.id1, ss.id2
 ;
@@ -70,10 +70,9 @@ CLOSE c;
 DEALLOCATE c;
 GO
 
-SELECT groupId, COUNT(*) FROM dbo.[Groups] GROUP BY groupId ORDER BY groupId
+SELECT groupId, COUNT(*) AS [ids] FROM dbo.[Groups] GROUP BY groupId ORDER BY groupId
 GO
 
---SELECT * FROM dbo.[Groups] WHERE groupId = 1801
-
-SELECT * FROM dbo.[Groups] WHERE groupId <= 3
+SELECT * FROM dbo.[Groups] ORDER BY groupId
 GO
+
