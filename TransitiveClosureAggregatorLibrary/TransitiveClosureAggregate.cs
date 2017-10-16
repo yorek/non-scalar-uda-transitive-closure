@@ -98,7 +98,6 @@ namespace TransitiveClosure
     {
         private List<Group> _groupSet = new List<Group>();
         private Dictionary<int, Group> _numbers = new Dictionary<int, Group>();
-        private int _earlyQuit = 0;
         private int _merges = 0;
 
         public int Groups => _groupSet.Count;
