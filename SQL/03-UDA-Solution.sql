@@ -2,13 +2,13 @@ USE [TransitiveClosure]
 GO
 
 -- Simple test, will return a JSON
-select dbo.TCD(id1, id2) from dbo.TestDataSmall
+select dbo.TCC(id1, id2) from dbo.TestDataSmall
 go
 
 -- Extract all group, with their JSON array element
 with cte as 
 (
-	select dbo.TCD(id1, id2) as R from dbo.TestDataSmall
+	select dbo.TCC(id1, id2) as R from dbo.TestDataSmall
 )
 select 
 	J1.[key] as GroupId,
@@ -22,7 +22,7 @@ go
 -- Fully decode JSON
 with cte as 
 (
-	select dbo.TCD(id1, id2) as R from dbo.TestDataSmall
+	select dbo.TCC(id1, id2) as R from dbo.TestDataSmall
 )
 select 
 	cast(J1.[key] as int)  as GroupId,

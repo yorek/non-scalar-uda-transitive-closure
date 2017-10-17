@@ -7,7 +7,7 @@ Test performance on high cardinality table
 
 with cte as 
 (
-	select dbo.TCD(id1, id2) as R from dbo.TestDataBig
+	select dbo.TCC(id1, id2) as R from dbo.TestDataBig
 ),
 cte2 AS
 (
@@ -28,6 +28,7 @@ FROM
 	cte2
 GROUP BY
 	cte2.GroupId
-WITH ROLLUP
+WITH 
+	ROLLUP
 ORDER BY
 	GroupId  
